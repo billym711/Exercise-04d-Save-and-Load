@@ -55,9 +55,30 @@ func restart_level():
 	get_tree().paused = false
 
 # ----------------------------------------------------------
-	
 func save_game():
-	pass
+	save_data["general"]["coins"] = []					# creating a list of all the coins and mines that appear in the scene
+	save_data["general"]["mines"] = []
+	for c in Coins.get_children():
+		save_data["general"]["coins"].append(var2str(c.position))	# get a json representation of each of the coins
+	for m in Mines.get_children():
+		save_data["general"]["mines"].append(var2str(m.position))	# and mines
+
+	var save_game = File.new()						# create a new file object
+	save_game.open_encrypted_with_pass(SAVE_PATH, File.WRITE, SECRET)	# prep it for writing to, make sure the contents are encrypted
+	save_game.store_string(to_json(save_data))				# convert the data to a json representation and write it to the file
+	save_game.close()							# close the file so other processes can read from or write to it
 	
 func load_game():
-	pass
+	var save_game = File.new()						# Create a new file object
+	if not save_game.file_exists(SAVE_PATH):				# If it doesn't exist, skip the rest of the function
+		return
+	save_game.open_encrypted_with_pass(SAVE_PATH, File.READ, SECRET)	# The file should be encrypted
+	var contents = save_game.get_as_text()
+	var result_json = JSON.parse(contents)
+	if result_json.error == OK:
+		save_data = result_json.result
+	else:
+		print("Error: ", result_json.error)
+	save_game.close()
+	var _scene = get_tree().change_scene_to(Game)
+	call_deferred("restart_level")
